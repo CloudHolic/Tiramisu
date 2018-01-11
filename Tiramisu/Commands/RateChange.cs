@@ -8,6 +8,7 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using Tiramisu.Entities;
 using Tiramisu.Processors;
+using Tiramisu.Util;
 
 namespace Tiramisu.Commands
 {
@@ -25,14 +26,16 @@ namespace Tiramisu.Commands
         [Description("Convert a given *.osz file with a specific rate.")]
         public async Task Rate(CommandContext ctx, [Description("Rate to convert")]double rate)
         {
-            await ctx.RespondAsync("Working... Please wait for a second.");
-            await ctx.TriggerTypingAsync();
-
+            var fileName = string.Empty;
+            var filePath = string.Empty;
+            var resultFile = string.Empty;
+            
             try
             {
                 DiscordAttachment attach;
 
-                if (ctx.Message.Attachments.Count > 0 && Path.GetExtension(ctx.Message.Attachments[0].FileName) == ".osz")
+                if (ctx.Message.Attachments.Count > 0 &&
+                    Path.GetExtension(ctx.Message.Attachments[0].FileName) == ".osz")
                     attach = ctx.Message.Attachments[0];
                 else
                 {
@@ -44,17 +47,20 @@ namespace Tiramisu.Commands
                     attach = reply.Message.Attachments[0];
                 }
 
-                var fileName = attach.FileName.Replace("_", " ");
+                await ctx.RespondAsync("Working... Please wait for a second.");
+                await ctx.TriggerTypingAsync();
+
+                fileName = attach.FileName.Replace("_", " ");
                 var url = attach.Url;
-                var filePath = Path.Combine(_config.FileDownloadPath, fileName);
+                filePath = Path.Combine(_config.FileDownloadPath, fileName);
 
                 using (var client = new WebClient())
                 {
                     client.DownloadFile(url, filePath);
                 }
                 
-                ZipFile.ExtractToDirectory(filePath, Path.Combine(_config.FileDownloadPath, Path.GetFileNameWithoutExtension(fileName)));
-                
+                ZipUtil.ExtractToDirectory(filePath, Path.Combine(_config.FileDownloadPath, Path.GetFileNameWithoutExtension(fileName)), true);
+
                 var threadInfo = new RateChangerThreadInput
                 {
                     Path = Path.Combine(_config.FileDownloadPath, Path.GetFileNameWithoutExtension(fileName)),
@@ -62,15 +68,22 @@ namespace Tiramisu.Commands
                     Rate = rate,
                     OutPutDir = _config.FileOutputPath
                 };
-                var resultOsz = RateChangerThread.Instance.StartWorker(threadInfo);
-                using (var fstream = File.Open(resultOsz, FileMode.Open))
+
+                resultFile = RateChangerThread.Instance.StartWorker(threadInfo);
+                using (var fstream = File.Open(resultFile, FileMode.Open))
                 {
-                    await ctx.RespondWithFileAsync(fstream, Path.GetFileName(resultOsz), "Done!");
+                    await ctx.RespondWithFileAsync(fstream, Path.GetFileName(resultFile), "Done!");
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
+            }
+            finally
+            {
+                File.Delete(resultFile);
+                Directory.Delete(Path.Combine(_config.FileDownloadPath, Path.GetFileNameWithoutExtension(fileName)), true);
+                File.Delete(filePath);
             }
         }
     }

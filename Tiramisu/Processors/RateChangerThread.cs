@@ -168,7 +168,7 @@ namespace Tiramisu.Processors
                     foreach (var cur in delFiles)
                         File.Move(Path.Combine(ThreadData.Directory, cur), Path.Combine(newPath, cur));
 
-                    ZipFile.CreateFromDirectory(newPath, zipPath);
+                    ZipUtil.CreateFromDirectory(newPath, zipPath, true);
                     Directory.Delete(newPath, true);
                     _resultFile = zipPath;
                 }
