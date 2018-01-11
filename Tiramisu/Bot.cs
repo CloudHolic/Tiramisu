@@ -7,6 +7,8 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using Tiramisu.Entities;
+using NLog;
+using OsuParser.Exceptions;
 
 namespace Tiramisu
 {
@@ -15,6 +17,7 @@ namespace Tiramisu
         private readonly DiscordClient _client;
         private readonly StartTimes _startTimes;
         private readonly CancellationTokenSource _cts;
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         private InteractivityModule _interactivity;
         private CommandsNextModule _cnext;
@@ -59,10 +62,8 @@ namespace Tiramisu
             {
                 AutoReconnect = true,
                 EnableCompression = true,
-                LogLevel = LogLevel.Debug,
                 Token = _config.Token,
                 TokenType = TokenType.Bot,
-                UseInternalLogHandler = true
             });
 
             _interactivity = _client.UseInteractivity(new InteractivityConfiguration
@@ -101,12 +102,14 @@ namespace Tiramisu
                 StringPrefix = _config.Prefix,
                 Dependencies = dep
             });
-
-            _cnext.RegisterCommands<Commands.Owner>();
-            _cnext.RegisterCommands<Commands.Interactivity>();
+            
             _cnext.RegisterCommands<Commands.RateChange>();
 
+            // Hook some events for logging.
             _client.Ready += OnReadyAsync;
+            _client.ClientErrored += ClientError;
+            _cnext.CommandExecuted += CommandExecuted;
+            _cnext.CommandErrored += CommandErroredAsync;
         }
 
         public async Task RunAsync()
@@ -123,8 +126,35 @@ namespace Tiramisu
 
         private async Task OnReadyAsync(ReadyEventArgs e)
         {
+            Log.Info("Tiramisu bot is now ready!");
+
             await Task.Yield();
             _startTimes.SocketStart = DateTime.Now;
+        }
+
+        private static Task ClientError(ClientErrorEventArgs e)
+        {
+            Log.Error(e.Exception, "ClientError Event fired. - An error occurred.");
+
+            return Task.CompletedTask;
+        }
+
+        private static Task CommandExecuted(CommandExecutionEventArgs e)
+        {
+            Log.Info($"Command {e.Command.Name} executed in Channel {e.Context.Channel.Name} in Guild {e.Context.Guild.Name} written by {e.Context.Message.Author}.");
+
+            return Task.CompletedTask;
+        }
+
+        private static async Task CommandErroredAsync(CommandErrorEventArgs e)
+        {
+            Log.Error(e.Exception,
+                $"Command {e.Command.Name} errored in Channel {e.Context.Channel.Name} in Guild {e.Context.Guild.Name} written by {e.Context.Message.Author}.");
+
+            if (e.Exception is InvalidBeatmapException)
+            {
+                await e.Context.RespondAsync("It's an invalid beatmap.");
+            }
         }
 
         public void Dispose()

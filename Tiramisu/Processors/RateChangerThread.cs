@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using OsuParser;
@@ -11,6 +10,7 @@ using OsuParser.Structures;
 using OsuParser.Structures.Events;
 using OsuParser.Structures.HitObjects;
 using Tiramisu.Util;
+using NLog;
 
 // ReSharper disable AssignNullToNotNullAttribute
 namespace Tiramisu.Processors
@@ -41,6 +41,7 @@ namespace Tiramisu.Processors
 
         private static volatile RateChangerThread _instance;
         private static readonly object Lock = new object();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         public bool IsWorking { get; private set; }
         public bool IsErrorOccurred { get; private set; }
@@ -204,8 +205,9 @@ namespace Tiramisu.Processors
                 var process = Process.Start(psInfo);
                 process?.WaitForExit();
             }
-            catch
+            catch (Exception e)
             {
+                Log.Error(e, $"An error occurred in MP3Change({mp3Name})");
                 IsErrorOccurred = true;
                 throw;
             }
@@ -279,8 +281,9 @@ namespace Tiramisu.Processors
 
                 Parser.SaveOsuFile(Path.Combine(ThreadData.Directory, newFile), newOsu);
             }
-            catch
+            catch (Exception e)
             {
+                Log.Error(e, $"An error occurred in PatternChange({newFile})");
                 IsErrorOccurred = true;
                 throw;
             }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.IO.Compression;
 using System.Net;
 using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
@@ -9,6 +8,7 @@ using DSharpPlus.Entities;
 using Tiramisu.Entities;
 using Tiramisu.Processors;
 using Tiramisu.Util;
+using NLog;
 
 namespace Tiramisu.Commands
 {
@@ -16,6 +16,7 @@ namespace Tiramisu.Commands
     {
         private readonly Dependencies _dep;
         private readonly Config _config = Config.LoadFromFile("config.json");
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         public RateChange(Dependencies dep)
         {
@@ -47,6 +48,7 @@ namespace Tiramisu.Commands
                     attach = reply.Message.Attachments[0];
                 }
 
+                Log.Info($"Check rate command - {ctx.Message.Content} with file {attach.FileName}");
                 await ctx.RespondAsync("Working... Please wait for a second.");
                 await ctx.TriggerTypingAsync();
 
@@ -77,13 +79,14 @@ namespace Tiramisu.Commands
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Log.Error(e, "An error occurred.");
             }
             finally
             {
                 File.Delete(resultFile);
                 Directory.Delete(Path.Combine(_config.FileDownloadPath, Path.GetFileNameWithoutExtension(fileName)), true);
                 File.Delete(filePath);
+                Log.Info("File delete completed.");
             }
         }
     }
