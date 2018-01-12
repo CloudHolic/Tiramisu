@@ -75,8 +75,7 @@ namespace Tiramisu.Commands
                 resultFiles = RateChangerThread.Instance.StartWorker(threadInfo);
                 using (var fstream = File.Open(resultFiles.Item1, FileMode.Open))
                 {
-                    if(resultFiles.Item2.Count > 0)
-                        await ctx.RespondAsync($"Excepted diffs: {string.Join(",", resultFiles.Item2)}");
+                    await ctx.RespondAsync($"Excepted diffs: {string.Join(",", resultFiles.Item2)}");
                     await ctx.RespondWithFileAsync(fstream, Path.GetFileName(resultFiles.Item1), "Done!");
                 }
             }
