@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
@@ -29,7 +30,7 @@ namespace Tiramisu.Commands
         {
             var fileName = string.Empty;
             var filePath = string.Empty;
-            var resultFile = string.Empty;
+            Tuple<string, List<string>> resultFiles = Tuple.Create(string.Empty, new List<string>());
             
             try
             {
@@ -71,10 +72,11 @@ namespace Tiramisu.Commands
                     OutPutDir = _config.FileOutputPath
                 };
 
-                resultFile = RateChangerThread.Instance.StartWorker(threadInfo);
-                using (var fstream = File.Open(resultFile, FileMode.Open))
+                resultFiles = RateChangerThread.Instance.StartWorker(threadInfo);
+                using (var fstream = File.Open(resultFiles.Item1, FileMode.Open))
                 {
-                    await ctx.RespondWithFileAsync(fstream, Path.GetFileName(resultFile), "Done!");
+                    await ctx.RespondAsync($"Excepted diffs: {string.Join(",", resultFiles.Item2)}");
+                    await ctx.RespondWithFileAsync(fstream, Path.GetFileName(resultFiles.Item1), "Done!");
                 }
             }
             catch (Exception e)
@@ -83,7 +85,7 @@ namespace Tiramisu.Commands
             }
             finally
             {
-                File.Delete(resultFile);
+                File.Delete(resultFiles.Item1);
                 Directory.Delete(Path.Combine(_config.FileDownloadPath, Path.GetFileNameWithoutExtension(fileName)), true);
                 File.Delete(filePath);
                 Log.Info("File delete completed.");

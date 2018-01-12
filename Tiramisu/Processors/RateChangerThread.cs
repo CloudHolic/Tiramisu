@@ -38,6 +38,7 @@ namespace Tiramisu.Processors
         }
 
         private string _resultFile = string.Empty;
+        private List<string> _exceptFileList = new List<string>();
 
         private static volatile RateChangerThread _instance;
         private static readonly object Lock = new object();
@@ -67,15 +68,16 @@ namespace Tiramisu.Processors
         }
 
         // Return after worker thread stops.
-        public string StartWorker(RateChangerThreadInput info)
+        public Tuple<string, List<string>> StartWorker(RateChangerThreadInput info)
         {
             _resultFile = string.Empty;
+            _exceptFileList.Clear();
             var thread = new Thread(Worker);
 
             thread.Start(info);
             thread.Join();
             
-            return _resultFile;
+            return Tuple.Create(_resultFile, _exceptFileList);
         }
 
         private void Worker(object threadInfo)
@@ -91,34 +93,36 @@ namespace Tiramisu.Processors
                 ThreadData.OutputDir = info.OutPutDir;
                 ThreadData.OsuNameList = Directory.GetFiles(ThreadData.Directory, "*.osu").ToList();
                 ThreadData.Map = new List<Beatmap>();
-                foreach(var cur in ThreadData.OsuNameList)
-                    ThreadData.Map.Add(Parser.LoadOsuFile(Path.Combine(ThreadData.Directory, cur)));
+                foreach (var cur in ThreadData.OsuNameList)
+                {
+                    var map = Parser.LoadOsuFile(Path.Combine(ThreadData.Directory, cur));
+                    if (map == null)
+                        _exceptFileList.Add(Path.GetFileNameWithoutExtension(cur).Split('[')[1].Split(']')[0]);
+                    else
+                        ThreadData.Map.Add(map);
+                }
                 ThreadData.Mp3NameList = Directory.GetFiles(ThreadData.Directory, "*.mp3").ToList();
                 ThreadData.Rate = info.Rate;
                 ThreadData.Nightcore = false;
                 ThreadData.NewOsuNameList = new List<string>();
-                for (var i = 0; i < ThreadData.OsuNameList.Count; i++)
+                foreach (var map in ThreadData.Map)
                 {
-                    var tempName = ThreadData.Map[i].Meta.Artist + " - " + ThreadData.Map[i].Meta.Title + " (" +
-                                   ThreadData.Map[i].Meta.Creator + ") [" + ThreadData.Map[i].Meta.Version + " x" + ThreadData.Rate +
+                    var tempName = map.Meta.Artist + " - " + map.Meta.Title + " (" +
+                                   map.Meta.Creator + ") [" + map.Meta.Version + " x" + ThreadData.Rate +
                                    (ThreadData.Nightcore ? "_P" : "") + "].osu";
                     tempName = invalidString.Aggregate(tempName, (current, cur) => current.Replace(cur, ""));
                     ThreadData.NewOsuNameList.Add(tempName);
                 }
             }
-            catch
+            catch (Exception e)
             {
                 IsErrorOccurred = true;
+                Log.Error(e, "Error occurred in parsing ThreadData.");
                 throw;
             }
 
             var mp3ThreadList = ThreadData.Mp3NameList.Select(cur => new Thread(() => Mp3Change(cur))).ToList();
-            var patternThreadList = new List<Thread>();
-            for (var i = 0; i < ThreadData.OsuNameList.Count; i++)
-            {
-                var temp = i;
-                patternThreadList.Add(new Thread(() => PatternChange(ThreadData.Map[temp], ThreadData.NewOsuNameList[temp])));
-            }
+            var patternThreadList = ThreadData.Map.Select((map, i) => new Thread(() => PatternChange(map, ThreadData.NewOsuNameList[i]))).ToList();
 
             foreach (var thread in mp3ThreadList)
                 thread.Start();
