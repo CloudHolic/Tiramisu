@@ -30,7 +30,7 @@ namespace Tiramisu.Commands
         {
             var fileName = string.Empty;
             var filePath = string.Empty;
-            Tuple<string, List<string>> resultFiles = Tuple.Create(string.Empty, new List<string>());
+            var resultFiles = Tuple.Create(string.Empty, new List<string>());
             
             try
             {
@@ -82,6 +82,7 @@ namespace Tiramisu.Commands
             }
             catch (Exception e)
             {
+                await ctx.RespondAsync("Error while working... Please try again.");
                 Log.Error(e, "An error occurred.");
             }
             finally

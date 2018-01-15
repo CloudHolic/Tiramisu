@@ -38,7 +38,7 @@ namespace Tiramisu.Processors
         }
 
         private string _resultFile = string.Empty;
-        private List<string> _exceptFileList = new List<string>();
+        private readonly List<string> _exceptFileList = new List<string>();
 
         private static volatile RateChangerThread _instance;
         private static readonly object Lock = new object();

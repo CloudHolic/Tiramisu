@@ -13,6 +13,18 @@ namespace Tiramisu.Entities
         internal string Token = "NDAwNDc4ODg5MjQ1Mjc4MjE5.DTcO2A.3IwXcJINqeXw0C0mtOl71YE2FMU";
 
         /// <summary>
+        /// Osu API Server.
+        /// </summary>
+        [JsonProperty("osuapi")]
+        internal string OsuApi = "https://osu.ppy.sh/api/";
+
+        /// <summary>
+        /// Osu API Key.
+        /// </summary>
+        [JsonProperty("osukey")]
+        internal string OsuApiKey = "2a6f3da5991786529960b571af721b18d03d7783";
+
+        /// <summary>
         /// Your bot's prefix
         /// </summary>
         [JsonProperty("prefix")]
