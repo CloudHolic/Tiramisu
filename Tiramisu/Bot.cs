@@ -105,6 +105,7 @@ namespace Tiramisu
             
             _cnext.RegisterCommands<Commands.RateChange>();
             _cnext.RegisterCommands<Commands.UserInfo>();
+            _cnext.RegisterCommands<Commands.Dice>();
 
             // Hook some events for logging.
             _client.Ready += OnReadyAsync;

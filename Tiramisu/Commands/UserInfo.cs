@@ -10,7 +10,7 @@ namespace Tiramisu.Commands
 {
     internal class UserInfo
     {
-        private readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         [Command("user"), Aliases("u")]
         [Description("Get the specified user info.")]
